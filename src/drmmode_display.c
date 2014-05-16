@@ -369,6 +369,16 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 		crtc->funcs->gamma_set(crtc, crtc->gamma_red, crtc->gamma_green,
 				       crtc->gamma_blue, crtc->gamma_size);
 
+	/* Turn on any outputs on this crtc that may have been disabled: */
+	for (i = 0; i < xf86_config->num_output; i++) {
+		xf86OutputPtr output = xf86_config->output[i];
+
+		if (output->crtc != crtc)
+			continue;
+
+		drmmode_output_dpms(output, DPMSModeOn);
+	}
+
 	drmmode_ConvertToKMode(crtc->scrn, &kmode, mode);
 
 	err = drmModeSetCrtc(drmmode->fd, drmmode_crtc->crtc_id,
@@ -436,16 +446,6 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
 	ret = TRUE;
 
 done_setting:
-	/* Turn on any outputs on this crtc that may have been disabled: */
-	for (i = 0; i < xf86_config->num_output; i++) {
-		xf86OutputPtr output = xf86_config->output[i];
-
-		if (output->crtc != crtc)
-			continue;
-
-		drmmode_output_dpms(output, DPMSModeOn);
-	}
-
 	/* if hw cursor is initialized, reload it */
 	if (drmmode->cursor)
 		xf86_reload_cursors(pScrn->pScreen);
